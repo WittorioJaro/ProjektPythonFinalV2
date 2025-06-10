@@ -18,10 +18,12 @@ def show_main_view(user):
         widget.destroy()
     notebook = ttk.Notebook(root)
 
+    # ===== TASKS TAB for all users =====
     tasks_frame = tk.Frame(notebook)
     notebook.add(tasks_frame, text="Tasks")
 
     if user.is_admin:
+        # ===== ADMIN VIEW OF TASKS TAB =====
         task_select_frame = ttk.Frame(tasks_frame)
         task_select_frame.pack(fill="x", padx=10, pady=5)
 
@@ -32,6 +34,7 @@ def show_main_view(user):
         task_dropdown = ttk.Combobox(task_select_frame, textvariable=task_var, values=list(task_choices.keys()), state="readonly")
         task_dropdown.pack(side="left", padx=5, fill="x", expand=True)
 
+        # ===== SUBMISSIONS DISPLAY AREA =====
         submissions_frame = ttk.Frame(tasks_frame)
         submissions_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
@@ -97,6 +100,7 @@ def show_main_view(user):
         scrollbar.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
 
+        # ===== GRADING RULES TAB =====
         grading_rules_frame = tk.Frame(notebook)
         notebook.add(grading_rules_frame, text="Grading Rules")
 
@@ -168,6 +172,10 @@ def show_main_view(user):
 
         refresh_rules()
 
+        # ===== GRADING CONTROLS =====
+        grade_buttons_frame = ttk.Frame(task_select_frame)
+        grade_buttons_frame.pack(side="right", padx=5)
+
         def grade_selected_task():
             """
             Initiates grading for all submissions of the currently selected task.
@@ -204,91 +212,7 @@ def show_main_view(user):
         ttk.Button(grade_buttons_frame, text="Grade Selected Task", command=grade_selected_task).pack(side="left", padx=5)
         ttk.Button(grade_buttons_frame, text="Grade All Tasks", command=grade_all_tasks).pack(side="left", padx=5)
 
-    else:
-        canvas = tk.Canvas(tasks_frame)
-        scrollbar = ttk.Scrollbar(tasks_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas)
-
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        tasks = get_tasks()
-
-        def handle_file_upload(task_id):
-            """
-            Handles the process of a user uploading a solution file for a task.
-
-            Opens a file dialog for the user to select a Python file. Reads the
-            file content and submits it as a solution for the specified task.
-
-            Args:
-                task_id: The ID of the task for which the solution is being submitted.
-            """
-            file_path = filedialog.askopenfilename(
-                title="Select Python File",
-                filetypes=[("Python files", "*.py")]
-            )
-            if file_path:
-                try:
-                    with open(file_path, 'r') as file:
-                        content = file.read()
-                        file_name = file_path.split('/')[-1]
-                        if submit_solution(task_id, user.id, file_name, content):
-                            messagebox.showinfo("Success", "Solution submitted successfully!")
-                        else:
-                            messagebox.showerror("Error", "Failed to submit solution")
-                except Exception as e:
-                    messagebox.showerror("Error", f"Error reading file: {str(e)}")
-
-        for i, task in enumerate(tasks):
-            task_frame = ttk.LabelFrame(scrollable_frame, text=f"Task: {task.title}")
-            task_frame.pack(fill="x", padx=10, pady=5, expand=True)
-
-            ttk.Label(task_frame, text=f"Description:", font=('Arial', 10, 'bold')).pack(anchor="w", padx=5, pady=2)
-            desc_text = tk.Text(task_frame, height=4, width=50, wrap=tk.WORD)
-            desc_text.insert("1.0", task.description)
-            desc_text.config(state=tk.DISABLED)
-            desc_text.pack(fill="x", padx=5, pady=2)
-
-            ttk.Label(task_frame, text=f"Max Score: {task.max_score}", font=('Arial', 10)).pack(anchor="w", padx=5)
-            ttk.Label(task_frame, text=f"Rule Type: {task.rule_type}", font=('Arial', 10)).pack(anchor="w", padx=5)
-
-            submissions = get_task_submissions(task.id)
-            user_submissions = [s for s in submissions if s.user_id == user.id]
-            if user_submissions:
-                latest_submission = user_submissions[-1]
-                status_frame = ttk.Frame(task_frame)
-                status_frame.pack(fill="x", padx=5, pady=5)
-
-                ttk.Label(status_frame, text="Latest Submission Status:", font=('Arial', 10, 'bold')).pack(anchor="w")
-                ttk.Label(status_frame, text=f"Submitted: {latest_submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S')}").pack(anchor="w")
-
-                if latest_submission.graded_at:
-                    ttk.Label(status_frame, text=f"Grade: {latest_submission.score if latest_submission.score is not None else 'Not graded yet'}",
-                             font=('Arial', 10)).pack(anchor="w")
-                    if latest_submission.similarity_score is not None:
-                        ttk.Label(status_frame, text=f"Code Similarity: {latest_submission.similarity_score}%").pack(anchor="w")
-                    if latest_submission.output_match is not None:
-                        ttk.Label(status_frame, text=f"Output Match: {'Yes' if latest_submission.output_match else 'No'}").pack(anchor="w")
-                else:
-                    ttk.Label(status_frame, text="Status: Not graded yet", font=('Arial', 10)).pack(anchor="w")
-
-            upload_btn = ttk.Button(
-                task_frame,
-                text="Upload Solution",
-                command=lambda t=task.id: handle_file_upload(t)
-            )
-            upload_btn.pack(pady=10)
-
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
-
-    if user.is_admin:
+        # ===== ADMIN PANEL TAB =====
         admin_frame = tk.Frame(notebook)
         notebook.add(admin_frame, text="Admin Panel")
         add_task_lf = ttk.LabelFrame(admin_frame, text="Add New Task")
@@ -370,6 +294,91 @@ def show_main_view(user):
 
         add_button = tk.Button(add_task_lf, text="Add Task", command=handle_add_task_submit)
         add_button.grid(row=6, column=0, columnspan=2, pady=10)
+    else:
+        # ===== STUDENT VIEW OF TASKS TAB =====
+        canvas = tk.Canvas(tasks_frame)
+        scrollbar = ttk.Scrollbar(tasks_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        tasks = get_tasks()
+
+        def handle_file_upload(task_id):
+            """
+            Handles the process of a user uploading a solution file for a task.
+
+            Opens a file dialog for the user to select a Python file. Reads the
+            file content and submits it as a solution for the specified task.
+
+            Args:
+                task_id: The ID of the task for which the solution is being submitted.
+            """
+            file_path = filedialog.askopenfilename(
+                title="Select Python File",
+                filetypes=[("Python files", "*.py")]
+            )
+            if file_path:
+                try:
+                    with open(file_path, 'r') as file:
+                        content = file.read()
+                        file_name = file_path.split('/')[-1]
+                        if submit_solution(task_id, user.id, file_name, content):
+                            messagebox.showinfo("Success", "Solution submitted successfully!")
+                        else:
+                            messagebox.showerror("Error", "Failed to submit solution")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Error reading file: {str(e)}")
+
+        # Task desciption + status
+        for i, task in enumerate(tasks):
+            task_frame = ttk.LabelFrame(scrollable_frame, text=f"Task: {task.title}")
+            task_frame.pack(fill="x", padx=10, pady=5, expand=True)
+
+            ttk.Label(task_frame, text=f"Description:", font=('Arial', 10, 'bold')).pack(anchor="w", padx=5, pady=2)
+            desc_text = tk.Text(task_frame, height=4, width=50, wrap=tk.WORD)
+            desc_text.insert("1.0", task.description)
+            desc_text.config(state=tk.DISABLED)
+            desc_text.pack(fill="x", padx=5, pady=2)
+
+            ttk.Label(task_frame, text=f"Max Score: {task.max_score}", font=('Arial', 10)).pack(anchor="w", padx=5)
+            ttk.Label(task_frame, text=f"Rule Type: {task.rule_type}", font=('Arial', 10)).pack(anchor="w", padx=5)
+
+            submissions = get_task_submissions(task.id)
+            user_submissions = [s for s in submissions if s.user_id == user.id]
+            if user_submissions:
+                latest_submission = user_submissions[-1]
+                status_frame = ttk.Frame(task_frame)
+                status_frame.pack(fill="x", padx=5, pady=5)
+
+                ttk.Label(status_frame, text="Latest Submission Status:", font=('Arial', 10, 'bold')).pack(anchor="w")
+                ttk.Label(status_frame, text=f"Submitted: {latest_submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S')}").pack(anchor="w")
+
+                if latest_submission.graded_at:
+                    ttk.Label(status_frame, text=f"Grade: {latest_submission.score if latest_submission.score is not None else 'Not graded yet'}",
+                             font=('Arial', 10)).pack(anchor="w")
+                    if latest_submission.similarity_score is not None:
+                        ttk.Label(status_frame, text=f"Code Similarity: {latest_submission.similarity_score}%").pack(anchor="w")
+                    if latest_submission.output_match is not None:
+                        ttk.Label(status_frame, text=f"Output Match: {'Yes' if latest_submission.output_match else 'No'}").pack(anchor="w")
+                else:
+                    ttk.Label(status_frame, text="Status: Not graded yet", font=('Arial', 10)).pack(anchor="w")
+
+            upload_btn = ttk.Button(
+                task_frame,
+                text="Upload Solution",
+                command=lambda t=task.id: handle_file_upload(t)
+            )
+            upload_btn.pack(pady=10)
+
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
 
     notebook.pack(expand=1, fill='both')
 
