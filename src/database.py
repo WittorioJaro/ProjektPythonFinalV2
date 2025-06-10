@@ -8,6 +8,9 @@ import contextlib
 
 Base = declarative_base()
 class User(Base):
+    """
+    Represents a user in the system.
+    """
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
@@ -18,6 +21,9 @@ class User(Base):
 
 
 class Task(Base):
+    """
+    Represents a task that users can submit solutions for.
+    """
     __tablename__ = 'tasks'
 
     id = Column(Integer, primary_key=True)
@@ -33,6 +39,9 @@ class Task(Base):
 
 
 class TaskSubmission(Base):
+    """
+    Represents a user's submission for a specific task.
+    """
     __tablename__ = 'task_submissions'
 
     id = Column(Integer, primary_key=True)
@@ -53,6 +62,9 @@ class TaskSubmission(Base):
 
 
 class GradingRule(Base):
+    """
+    Defines the rules for assigning grades based on percentage scores.
+    """
     __tablename__ = 'grading_rules'
 
     id = Column(Integer, primary_key=True)
@@ -69,6 +81,17 @@ Base.metadata.create_all(engine)
 
 
 def register_user(username: str, password: str, is_admin: bool = False) -> bool:
+    """
+    Registers a new user in the database.
+
+    Args:
+        username: The username for the new user.
+        password: The password for the new user.
+        is_admin: Flag indicating if the user is an administrator.
+
+    Returns:
+        True if registration is successful, False otherwise.
+    """
     existing = session.query(User).filter_by(username=username).first()
     if existing:
         print(f"User '{username}' already exists.")
@@ -81,6 +104,16 @@ def register_user(username: str, password: str, is_admin: bool = False) -> bool:
     return True
 
 def login_user(username: str, password: str):
+    """
+    Logs in an existing user.
+
+    Args:
+        username: The username of the user.
+        password: The password of the user.
+
+    Returns:
+        The User object if login is successful, None otherwise.
+    """
     user = session.query(User).filter_by(username=username).first()
     if not user:
         print("No such user.")
@@ -92,6 +125,21 @@ def login_user(username: str, password: str):
     return user
 
 def add_task(title: str, description: str, perfect_code: str, expected_output: str, rule_type: str, max_score: int, created_by: int) -> bool:
+    """
+    Adds a new task to the database.
+
+    Args:
+        title: The title of the task.
+        description: The description of the task.
+        perfect_code: The reference solution code for the task.
+        expected_output: The expected output of the perfect code.
+        rule_type: The grading rule type ('code', 'output', 'both').
+        max_score: The maximum score for the task.
+        created_by: The ID of the user who created the task.
+
+    Returns:
+        True if the task is added successfully, False otherwise.
+    """
     try:
         new_task = Task(
             title=title,
@@ -113,9 +161,27 @@ def add_task(title: str, description: str, perfect_code: str, expected_output: s
         return False
 
 def get_tasks():
+    """
+    Retrieves all active tasks from the database.
+
+    Returns:
+        A list of active Task objects.
+    """
     return session.query(Task).filter_by(is_active=True).all()
 
 def submit_solution(task_id: int, user_id: int, file_name: str, file_content: str) -> bool:
+    """
+    Submits a solution for a task.
+
+    Args:
+        task_id: The ID of the task.
+        user_id: The ID of the user submitting the solution.
+        file_name: The name of the submitted file.
+        file_content: The content of the submitted file.
+
+    Returns:
+        True if submission is successful, False otherwise.
+    """
     try:
         submission = TaskSubmission(
             task_id=task_id,
@@ -132,18 +198,46 @@ def submit_solution(task_id: int, user_id: int, file_name: str, file_content: st
         return False
 
 def get_task_submissions(task_id=None):
+    """
+    Retrieves task submissions.
+
+    Args:
+        task_id: Optional. The ID of the task to filter submissions by.
+                 If None, retrieves all submissions.
+
+    Returns:
+        A list of TaskSubmission objects.
+    """
     query = session.query(TaskSubmission).join(Task).join(User)
     if task_id is not None:
         query = query.filter(TaskSubmission.task_id == task_id)
     return query.all()
 
 def get_task_by_id(task_id):
+    """
+    Retrieves a specific task by its ID.
+
+    Args:
+        task_id: The ID of the task.
+
+    Returns:
+        The Task object if found, None otherwise.
+    """
     return session.query(Task).filter_by(id=task_id).first()
 
 def get_all_tasks():
+    """
+    Retrieves all tasks from the database, regardless of active status.
+
+    Returns:
+        A list of all Task objects.
+    """
     return session.query(Task).all()
 
 def initialize_default_grading_rules():
+    """
+    Initializes default grading rules if no rules exist in the database.
+    """
     default_rules = [
         {'min': 85, 'max': 100, 'grade': 5},
         {'min': 66, 'max': 84, 'grade': 4},
@@ -163,6 +257,18 @@ def initialize_default_grading_rules():
         session.commit()
 
 def update_grading_rule(rule_id: int, min_percentage: int, max_percentage: int, grade: int) -> bool:
+    """
+    Updates an existing grading rule.
+
+    Args:
+        rule_id: The ID of the grading rule to update.
+        min_percentage: The new minimum percentage for the rule.
+        max_percentage: The new maximum percentage for the rule.
+        grade: The new grade associated with the rule.
+
+    Returns:
+        True if the update is successful, False otherwise.
+    """
     try:
         rule = session.query(GradingRule).get(rule_id)
         if rule:
@@ -178,9 +284,24 @@ def update_grading_rule(rule_id: int, min_percentage: int, max_percentage: int, 
         return False
 
 def get_grading_rules():
+    """
+    Retrieves all grading rules, ordered by minimum percentage descending.
+
+    Returns:
+        A list of GradingRule objects.
+    """
     return session.query(GradingRule).order_by(GradingRule.min_percentage.desc()).all()
 
 def get_grade_for_percentage(percentage: float) -> int:
+    """
+    Determines the grade for a given percentage based on the grading rules.
+
+    Args:
+        percentage: The percentage score.
+
+    Returns:
+        The corresponding grade (2-5). Defaults to 2 if no rule matches.
+    """
     rule = session.query(GradingRule).filter(
         GradingRule.min_percentage <= percentage,
         GradingRule.max_percentage >= percentage
@@ -190,6 +311,18 @@ def get_grade_for_percentage(percentage: float) -> int:
 initialize_default_grading_rules()
 
 def grade_submission(submission_id: int) -> bool:
+    """
+    Grades a specific task submission.
+
+    Calculates code similarity and, if applicable, output similarity.
+    Assigns a score and grade based on the task's rule type and grading rules.
+
+    Args:
+        submission_id: The ID of the submission to grade.
+
+    Returns:
+        True if grading is successful, False otherwise.
+    """
     submission = session.query(TaskSubmission).get(submission_id)
     if not submission:
         return False
@@ -197,12 +330,23 @@ def grade_submission(submission_id: int) -> bool:
     task = submission.task
 
     def calculate_code_similarity(perfect_code: str, submitted_code: str) -> float:
+        """Calculates the similarity ratio between two code strings."""
         return SequenceMatcher(None, perfect_code, submitted_code).ratio() * 100
 
     def calculate_output_similarity(expected_output: str, actual_output: str) -> float:
+        """Calculates the similarity ratio between two output strings."""
         return SequenceMatcher(None, expected_output, actual_output).ratio() * 100
 
     def run_code_safely(code: str) -> str:
+        """
+        Executes Python code in a controlled environment and captures its stdout.
+
+        Args:
+            code: The Python code string to execute.
+
+        Returns:
+            The standard output of the executed code, or an error message.
+        """
         output = StringIO()
         with contextlib.redirect_stdout(output):
             try:
@@ -233,6 +377,12 @@ def grade_submission(submission_id: int) -> bool:
     return True
 
 def grade_all_submissions():
+    """
+    Grades all ungraded submissions in the database.
+
+    Returns:
+        True if all ungraded submissions are processed successfully, False otherwise.
+    """
     try:
         ungraded_submissions = session.query(TaskSubmission).filter(TaskSubmission.graded_at.is_(None)).all()
         for submission in ungraded_submissions:

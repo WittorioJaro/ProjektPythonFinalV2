@@ -1,10 +1,19 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, filedialog
 from database import (register_user, login_user, add_task, get_tasks, submit_solution,
-                     get_task_submissions, get_all_tasks, get_grading_rules,
-                     update_grading_rule, grade_submission, grade_all_submissions)
+                          get_task_submissions, get_all_tasks, get_grading_rules,
+                          update_grading_rule, grade_submission, grade_all_submissions)
 
 def show_main_view(user):
+    """
+    Displays the main application view after a successful login.
+
+    Clears the existing widgets and sets up a notebook interface with different
+    tabs based on whether the user is an admin or a regular user.
+
+    Args:
+        user: The logged-in user object, containing user details and admin status.
+    """
     for widget in root.winfo_children():
         widget.destroy()
     notebook = ttk.Notebook(root)
@@ -39,6 +48,15 @@ def show_main_view(user):
         canvas.configure(yscrollcommand=scrollbar.set)
 
         def show_submissions(*args):
+            """
+            Displays submissions for the selected task in the admin view.
+
+            Clears previous submissions and populates the scrollable frame
+            with details of each submission for the chosen task.
+
+            Args:
+                *args: Variable length argument list (used by trace).
+            """
             for widget in scrollable_frame.winfo_children():
                 widget.destroy()
 
@@ -91,6 +109,18 @@ def show_main_view(user):
         ttk.Label(rules_list_frame, text="Actions").grid(row=0, column=3, padx=5, pady=5)
 
         def save_rule_changes(rule_id, min_var, max_var, grade_var):
+            """
+            Saves changes made to a specific grading rule.
+
+            Validates the input values and calls the database function to update
+            the rule. Shows success or error messages accordingly.
+
+            Args:
+                rule_id: The ID of the grading rule to update.
+                min_var: tkinter.StringVar holding the minimum percentage.
+                max_var: tkinter.StringVar holding the maximum percentage.
+                grade_var: tkinter.StringVar holding the grade.
+            """
             try:
                 min_val = int(min_var.get())
                 max_val = int(max_var.get())
@@ -109,6 +139,12 @@ def show_main_view(user):
                 messagebox.showerror("Error", "Please enter valid numbers.")
 
         def refresh_rules():
+            """
+            Refreshes the display of grading rules in the admin panel.
+
+            Clears the existing rules and repopulates the list with current
+            grading rules from the database.
+            """
             for widget in rules_list_frame.grid_slaves():
                 if int(widget.grid_info()["row"]) > 0:
                     widget.destroy()
@@ -133,6 +169,12 @@ def show_main_view(user):
         refresh_rules()
 
         def grade_selected_task():
+            """
+            Initiates grading for all submissions of the currently selected task.
+
+            Shows a warning if no task is selected. Otherwise, iterates through
+            submissions of the selected task and grades them.
+            """
             if not task_var.get():
                 messagebox.showwarning("Warning", "Please select a task first.")
                 return
@@ -144,6 +186,12 @@ def show_main_view(user):
             messagebox.showinfo("Success", "Selected task has been graded!")
 
         def grade_all_tasks():
+            """
+            Initiates grading for all ungraded submissions across all tasks.
+
+            Calls the database function to grade all submissions and shows
+            a success or error message.
+            """
             if grade_all_submissions():
                 show_submissions()
                 messagebox.showinfo("Success", "All tasks have been graded!")
@@ -172,7 +220,15 @@ def show_main_view(user):
         tasks = get_tasks()
 
         def handle_file_upload(task_id):
-            from tkinter import filedialog
+            """
+            Handles the process of a user uploading a solution file for a task.
+
+            Opens a file dialog for the user to select a Python file. Reads the
+            file content and submits it as a solution for the specified task.
+
+            Args:
+                task_id: The ID of the task for which the solution is being submitted.
+            """
             file_path = filedialog.askopenfilename(
                 title="Select Python File",
                 filetypes=[("Python files", "*.py")]
@@ -270,7 +326,14 @@ def show_main_view(user):
 
         add_task_lf.columnconfigure(1, weight=1)
 
-        def _handle_add_task_submit():
+        def handle_add_task_submit():
+            """
+            Handles the submission of the 'Add New Task' form by an admin.
+
+            Retrieves task details from the input fields, validates them,
+            and calls the database function to add the new task.
+            Shows success or error messages and clears the form on success.
+            """
             title = title_entry.get()
             description = description_text.get("1.0", tk.END).strip()
             perfect_code = perfect_code_text.get("1.0", tk.END).strip()
@@ -305,12 +368,19 @@ def show_main_view(user):
             else:
                 messagebox.showerror("Database Error", "Failed to add task. Check application logs.")
 
-        add_button = tk.Button(add_task_lf, text="Add Task", command=_handle_add_task_submit)
+        add_button = tk.Button(add_task_lf, text="Add Task", command=handle_add_task_submit)
         add_button.grid(row=6, column=0, columnspan=2, pady=10)
 
     notebook.pack(expand=1, fill='both')
 
 def handle_login():
+    """
+    Handles the user login attempt.
+
+    Retrieves username and password from the entry fields, calls the
+    login_user function, and shows the main view on success or an error
+    message on failure.
+    """
     username = username_entry.get()
     password = password_entry.get()
     user = login_user(username, password)
@@ -320,6 +390,13 @@ def handle_login():
         messagebox.showerror("Login", "Login failed. Check your username and password.")
 
 def handle_register():
+    """
+    Handles the user login attempt.
+
+    Retrieves username and password from the entry fields, calls the
+    login_user function, and shows the main view on success or an error
+    message on failure.
+    """
     username = username_entry.get()
     password = password_entry.get()
     is_admin = is_admin_var.get()
@@ -329,6 +406,12 @@ def handle_register():
         messagebox.showerror("Register", f"Registration failed. User '{username}' may already exist.")
 
 def main():
+    """
+    Main function to initialize and run the Tkinter application.
+
+    Sets up the initial login/registration window and starts the Tkinter
+    event loop.
+    """
     global username_entry, password_entry, root, is_admin_var
     root = tk.Tk()
     root.title("PPYSDKP")
