@@ -307,8 +307,16 @@ def show_main_view(user):
 
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
-
         tasks = get_tasks()
+
+        def refresh_tasks():
+            for widget in scrollable_frame.winfo_children():
+                widget.destroy()
+            get_user_tasks()
+
+
+        refresh_btn = ttk.Button(tasks_frame, text="Refresh", command=refresh_tasks)
+        refresh_btn.pack(fill="x", padx=10, pady=5)
 
         def handle_file_upload(task_id):
             """
@@ -337,45 +345,47 @@ def show_main_view(user):
                     messagebox.showerror("Error", f"Error reading file: {str(e)}")
 
         # Task desciption + status
-        for i, task in enumerate(tasks):
-            task_frame = ttk.LabelFrame(scrollable_frame, text=f"Task: {task.title}")
-            task_frame.pack(fill="x", padx=10, pady=5, expand=True)
+        def get_user_tasks():
+            for i, task in enumerate(tasks):
+                task_frame = ttk.LabelFrame(scrollable_frame, text=f"Task: {task.title}")
+                task_frame.pack(fill="x", padx=10, pady=5, expand=True)
 
-            ttk.Label(task_frame, text=f"Description:", font=('Arial', 10, 'bold')).pack(anchor="w", padx=5, pady=2)
-            desc_text = tk.Text(task_frame, height=4, width=50, wrap=tk.WORD)
-            desc_text.insert("1.0", task.description)
-            desc_text.config(state=tk.DISABLED)
-            desc_text.pack(fill="x", padx=5, pady=2)
+                ttk.Label(task_frame, text=f"Description:", font=('Arial', 10, 'bold')).pack(anchor="w", padx=5, pady=2)
+                desc_text = tk.Text(task_frame, height=4, width=50, wrap=tk.WORD)
+                desc_text.insert("1.0", task.description)
+                desc_text.config(state=tk.DISABLED)
+                desc_text.pack(fill="x", padx=5, pady=2)
 
-            ttk.Label(task_frame, text=f"Max Score: {task.max_score}", font=('Arial', 10)).pack(anchor="w", padx=5)
-            ttk.Label(task_frame, text=f"Rule Type: {task.rule_type}", font=('Arial', 10)).pack(anchor="w", padx=5)
+                ttk.Label(task_frame, text=f"Max Score: {task.max_score}", font=('Arial', 10)).pack(anchor="w", padx=5)
+                ttk.Label(task_frame, text=f"Rule Type: {task.rule_type}", font=('Arial', 10)).pack(anchor="w", padx=5)
 
-            submissions = get_task_submissions(task.id)
-            user_submissions = [s for s in submissions if s.user_id == user.id]
-            if user_submissions:
-                latest_submission = user_submissions[-1]
-                status_frame = ttk.Frame(task_frame)
-                status_frame.pack(fill="x", padx=5, pady=5)
+                submissions = get_task_submissions(task.id)
+                user_submissions = [s for s in submissions if s.user_id == user.id]
+                if user_submissions:
+                    latest_submission = user_submissions[-1]
+                    status_frame = ttk.Frame(task_frame)
+                    status_frame.pack(fill="x", padx=5, pady=5)
 
-                ttk.Label(status_frame, text="Latest Submission Status:", font=('Arial', 10, 'bold')).pack(anchor="w")
-                ttk.Label(status_frame, text=f"Submitted: {latest_submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S')}").pack(anchor="w")
+                    ttk.Label(status_frame, text="Latest Submission Status:", font=('Arial', 10, 'bold')).pack(anchor="w")
+                    ttk.Label(status_frame, text=f"Submitted: {latest_submission.submitted_at.strftime('%Y-%m-%d %H:%M:%S')}").pack(anchor="w")
 
-                if latest_submission.graded_at:
-                    ttk.Label(status_frame, text=f"Grade: {latest_submission.score if latest_submission.score is not None else 'Not graded yet'}",
-                             font=('Arial', 10)).pack(anchor="w")
-                    if latest_submission.similarity_score is not None:
-                        ttk.Label(status_frame, text=f"Code Similarity: {latest_submission.similarity_score}%").pack(anchor="w")
-                    if latest_submission.output_match is not None:
-                        ttk.Label(status_frame, text=f"Output Match: {'Yes' if latest_submission.output_match else 'No'}").pack(anchor="w")
-                else:
-                    ttk.Label(status_frame, text="Status: Not graded yet", font=('Arial', 10)).pack(anchor="w")
+                    if latest_submission.graded_at:
+                        ttk.Label(status_frame, text=f"Grade: {latest_submission.score if latest_submission.score is not None else 'Not graded yet'}",
+                                 font=('Arial', 10)).pack(anchor="w")
+                        if latest_submission.similarity_score is not None:
+                            ttk.Label(status_frame, text=f"Code Similarity: {latest_submission.similarity_score}%").pack(anchor="w")
+                        if latest_submission.output_match is not None:
+                            ttk.Label(status_frame, text=f"Output Match: {'Yes' if latest_submission.output_match else 'No'}").pack(anchor="w")
+                    else:
+                        ttk.Label(status_frame, text="Status: Not graded yet", font=('Arial', 10)).pack(anchor="w")
 
-            upload_btn = ttk.Button(
-                task_frame,
-                text="Upload Solution",
-                command=lambda t=task.id: handle_file_upload(t)
-            )
-            upload_btn.pack(pady=10)
+                upload_btn = ttk.Button(
+                    task_frame,
+                    text="Upload Solution",
+                    command=lambda t=task.id: handle_file_upload(t)
+                )
+                upload_btn.pack(pady=10)
+        get_user_tasks()
 
         scrollbar.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
